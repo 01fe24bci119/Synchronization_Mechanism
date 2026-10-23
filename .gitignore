@@ -1,0 +1,16 @@
+# Compiled program binaries
+/race
+/critical
+/atomic
+/barrier
+/semaphore
+/compare_sync
+
+# Object and library files
+*.o
+*.a
+*.so
+
+# Editor / OS files
+*~
+.DS_Store
