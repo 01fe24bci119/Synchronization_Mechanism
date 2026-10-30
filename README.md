@@ -174,14 +174,9 @@ Raw dataset available at: [`results/benchmark-results.csv`](results/benchmark-re
 
 ## Graphical Performance Analysis
 
-### 1. Comprehensive Benchmark Overview
-The dashboard below visualizes scaling trends, overhead comparisons, data race severity, and relative slowdowns across all tested thread counts:
 
-![Benchmark Summary Dashboard](results/benchmark_summary.png)
 
----
-
-### 2. Execution Time vs. Number of Threads
+### 1. Execution Time vs. Number of Threads
 This plot illustrates how each synchronization mechanism scales as the thread count increases from 1 to 8 threads (10,000,000 shared counter increments):
 
 ![Execution Time vs Number of Threads](results/execution_time_comparison.png)
@@ -194,7 +189,7 @@ This plot illustrates how each synchronization mechanism scales as the thread co
 
 ---
 
-### 3. Synchronization Overhead Comparison
+### 2. Synchronization Overhead Comparison
 A direct side-by-side grouped bar chart comparing execution times across 1, 2, 4, and 8 threads:
 
 ![Synchronization Overhead Comparison](results/synchronization_overhead_comparison.png)
@@ -205,7 +200,7 @@ A direct side-by-side grouped bar chart comparing execution times across 1, 2, 4
 
 ---
 
-### 4. Race Condition & Data Loss Severity
+### 3. Race Condition & Data Loss Severity
 Analysis of lost increments in the unsynchronized shared counter (`expected = 10,000,000`):
 
 ![Race Condition Severity](results/race_condition_loss.png)
@@ -224,13 +219,6 @@ Analysis of lost increments in the unsynchronized shared counter (`expected = 10
 
 ---
 
-### Reproducing the Graphs
-The plots are generated using Python (`matplotlib` & `pandas`). To regenerate the graphs locally:
-
-```bash
-cd results
-python generate_graphs.py
-```
 
 ---
 
