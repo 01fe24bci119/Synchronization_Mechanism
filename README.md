@@ -1,4 +1,4 @@
-# Analyze Synchronization Mechanisms in Parallel Programs
+# Synchronization Mechanisms in Parallel Programs
 
 ## Aim
 To study synchronization mechanisms in parallel programs and observe how they help protect shared data and coordinate threads.
@@ -25,35 +25,30 @@ gcc --version
 ```
 
 The OpenMP programs use `#include <omp.h>` and require the `-fopenmp` compiler option.
+## Step-by-Step Procedure
 
-## Repository Structure
+1. Update Ubuntu package information and install `build-essential`.
+2. Verify GCC is available using `gcc --version`.
+3. Verify OpenMP support by compiling an OpenMP program with `-fopenmp`.
+4. Create the experiment directory and source files.
+5. Compile and execute `race.c` to observe the unsynchronized shared-counter update.
+6. Compile and execute `critical.c` and `atomic.c` to compare two ways to protect the counter.
+7. Compile and execute `barrier.c` to observe thread coordination.
+8. Compile and execute `semaphore.c` using the `-pthread` option.
+9. Compile and execute `compare_sync.c` to compare the mechanisms at different thread counts.
+10. Record the observed outputs and compare correctness and execution time.
 
-```text
-Synchronization-Mechanisms-Parallel-Programs/
-├── README.md
-├── .gitignore
-├── src/
-│   ├── race.c
-│   ├── critical.c
-│   ├── atomic.c
-│   ├── barrier.c
-│   ├── semaphore.c
-│   └── compare_sync.c
-├── screenshots/
-│   ├── 01-environment-setup.png
-│   ├── 02-package-installation.png
-│   ├── 03-gcc-version.png
-│   ├── 04-openmp-verification.png
-│   ├── 05-race-condition.png
-│   ├── 06-critical-section.png
-│   ├── 07-atomic-operation.png
-│   ├── 08-barrier-synchronization.png
-│   ├── 09-semaphore-synchronization.png
-│   ├── 10-benchmark-compilation-and-run.png
-│   └── 11-performance-comparison.png
-└── results/
-    └── benchmark-results.txt
-```
+Environment setup screenshots:
+
+![Environment setup](screenshots/01-environment-setup.png)
+
+![Package installation](screenshots/02-package-installation.png)
+
+![GCC version](screenshots/03-gcc-version.png)
+
+![OpenMP verification](screenshots/04-openmp-verification.png)
+
+
 
 ## Program Descriptions
 
@@ -147,28 +142,6 @@ Screenshot:
 
 ![Benchmark comparison output](screenshots/11-performance-comparison.png)
 
-## Step-by-Step Procedure
-
-1. Update Ubuntu package information and install `build-essential`.
-2. Verify GCC is available using `gcc --version`.
-3. Verify OpenMP support by compiling an OpenMP program with `-fopenmp`.
-4. Create the experiment directory and source files.
-5. Compile and execute `race.c` to observe the unsynchronized shared-counter update.
-6. Compile and execute `critical.c` and `atomic.c` to compare two ways to protect the counter.
-7. Compile and execute `barrier.c` to observe thread coordination.
-8. Compile and execute `semaphore.c` using the `-pthread` option.
-9. Compile and execute `compare_sync.c` to compare the mechanisms at different thread counts.
-10. Record the observed outputs and compare correctness and execution time.
-
-Environment setup screenshots:
-
-![Environment setup](screenshots/01-environment-setup.png)
-
-![Package installation](screenshots/02-package-installation.png)
-
-![GCC version](screenshots/03-gcc-version.png)
-
-![OpenMP verification](screenshots/04-openmp-verification.png)
 
 ## Benchmark Results
 
@@ -205,5 +178,31 @@ The table below is an example of the measured output from one recorded run. Timi
 ## Conclusion
 This experiment demonstrates why synchronization is important in parallel programs. Shared data must be protected when multiple threads update it concurrently. OpenMP critical regions, atomic operations, locks, barriers, and POSIX semaphores serve different synchronization purposes. The benchmark illustrates the trade-off between correctness and execution time, while also showing that measurements depend on the execution environment.
 
-## Screenshots
-The screenshots folder contains the captured setup, compilation, and program-output images from the experiment.
+## Repository Structure
+
+```text
+Synchronization-Mechanisms-Parallel-Programs/
+├── README.md
+├── .gitignore
+├── src/
+│   ├── race.c
+│   ├── critical.c
+│   ├── atomic.c
+│   ├── barrier.c
+│   ├── semaphore.c
+│   └── compare_sync.c
+├── screenshots/
+│   ├── 01-environment-setup.png
+│   ├── 02-package-installation.png
+│   ├── 03-gcc-version.png
+│   ├── 04-openmp-verification.png
+│   ├── 05-race-condition.png
+│   ├── 06-critical-section.png
+│   ├── 07-atomic-operation.png
+│   ├── 08-barrier-synchronization.png
+│   ├── 09-semaphore-synchronization.png
+│   ├── 10-benchmark-compilation-and-run.png
+│   └── 11-performance-comparison.png
+└── results/
+    └── benchmark-results.txt
+```
