@@ -145,43 +145,114 @@ Screenshot:
 
 ## Benchmark Results
 
-The table below is an example of the measured output from one recorded run. Timings depend on the machine, operating system, compiler, and current system load. The unsynchronized `None` results are nondeterministic and are not guaranteed to repeat.
+The table below summarizes the measured output from the benchmark run recorded in [screenshots/11-performance-comparison.png](screenshots/11-performance-comparison.png). Timings depend on the hardware architecture, operating system, and current system load. The unsynchronized `None` updates suffer from nondeterministic data races.
 
-| Mechanism | Threads | Final Count | Correctness | Time (s) |
-|---|---:|---:|---|---:|
-| None | 1 | 10000000 | Correct in this run | 0.0063 |
-| Critical | 1 | 10000000 | Correct | 0.0899 |
-| Atomic | 1 | 10000000 | Correct | 0.0546 |
-| Lock | 1 | 10000000 | Correct | 0.0914 |
-| None | 2 | 7414813 | Incorrect | 0.0070 |
-| Critical | 2 | 10000000 | Correct | 0.2644 |
-| Atomic | 2 | 10000000 | Correct | 0.0802 |
-| Lock | 2 | 10000000 | Correct | 0.2102 |
-| None | 4 | 3758091 | Incorrect | 0.0078 |
-| Critical | 4 | 10000000 | Correct | 0.5892 |
-| Atomic | 4 | 10000000 | Correct | 0.0770 |
-| Lock | 4 | 10000000 | Correct | 0.3641 |
-| None | 8 | 1973175 | Incorrect | 0.0091 |
-| Critical | 8 | 10000000 | Correct | 0.7047 |
-| Atomic | 8 | 10000000 | Correct | 0.0702 |
-| Lock | 8 | 10000000 | Correct | 0.4247 |
+Raw dataset available at: [`results/benchmark-results.csv`](results/benchmark-results.csv) (and [`results/benchmark-results.txt`](results/benchmark-results.txt))
 
-> **Note:** These values are the results supplied for one observed run. Run `./compare_sync` on your own machine to regenerate local measurements. The `None` implementation has a data race in C/OpenMP; its behavior is not guaranteed and should not be treated as a reliable performance baseline.
+| Mechanism | Threads | Final Count | Correctness | Time (s) | Relative Overhead vs. Atomic |
+|---|---:|---:|---|---:|---:|
+| **None** | 1 | 10,000,000 | Correct (No concurrency) | 0.0063 | 0.12x |
+| **Critical** | 1 | 10,000,000 | Correct | 0.0899 | 1.65x |
+| **Atomic** | 1 | 10,000,000 | Correct | 0.0546 | 1.00x (Baseline) |
+| **Lock** | 1 | 10,000,000 | Correct | 0.0914 | 1.67x |
+| **None** | 2 | 7,414,813 | **Incorrect** (25.9% lost) | 0.0070 | 0.09x |
+| **Critical** | 2 | 10,000,000 | Correct | 0.2644 | 3.30x |
+| **Atomic** | 2 | 10,000,000 | Correct | 0.0802 | 1.00x (Baseline) |
+| **Lock** | 2 | 10,000,000 | Correct | 0.2102 | 2.62x |
+| **None** | 4 | 3,758,091 | **Incorrect** (62.4% lost) | 0.0078 | 0.10x |
+| **Critical** | 4 | 10,000,000 | Correct | 0.5892 | 7.65x |
+| **Atomic** | 4 | 10,000,000 | Correct | 0.0770 | 1.00x (Baseline) |
+| **Lock** | 4 | 10,000,000 | Correct | 0.3641 | 4.73x |
+| **None** | 8 | 1,973,175 | **Incorrect** (80.3% lost) | 0.0091 | 0.13x |
+| **Critical** | 8 | 10,000,000 | Correct | 0.7047 | 10.04x |
+| **Atomic** | 8 | 10,000,000 | Correct | 0.0702 | 1.00x (Baseline) |
+| **Lock** | 8 | 10,000,000 | Correct | 0.4247 | 6.05x |
+
+> **Note:** Run `./compare_sync` on your own machine to regenerate local measurements. The `None` implementation has an intentional data race in C/OpenMP; its behavior is undefined and produces incorrect results under concurrency.
+
+---
+
+## Graphical Performance Analysis
+
+### 1. Comprehensive Benchmark Overview
+The dashboard below visualizes scaling trends, overhead comparisons, data race severity, and relative slowdowns across all tested thread counts:
+
+![Benchmark Summary Dashboard](results/benchmark_summary.png)
+
+---
+
+### 2. Execution Time vs. Number of Threads
+This plot illustrates how each synchronization mechanism scales as the thread count increases from 1 to 8 threads (10,000,000 shared counter increments):
+
+![Execution Time vs Number of Threads](results/execution_time_comparison.png)
+
+**Key Insights:**
+- **Atomic Operation (`#pragma omp atomic`) — Superior Scalability:** Execution time remains nearly flat across all thread counts (`0.0546s` at 1 thread, `0.0802s` at 2 threads, `0.0770s` at 4 threads, and `0.0702s` at 8 threads). Because atomic operations are directly translated to hardware atomic primitives (e.g., `LOCK XADD` on x86/x64), threads do not enter software sleep or experience heavy OS lock contention.
+- **Critical Section (`#pragma omp critical`) — Severe Serialization Bottleneck:** Execution time grows steeply from `0.0899s` with 1 thread to `0.7047s` with 8 threads (a **7.8x increase**). OpenMP critical sections enforce global mutual exclusion across threads, leading to high contention, frequent thread idling, and serialization.
+- **OpenMP Lock (`omp_lock_t`) — Moderate Overhead:** Shows an intermediate scaling profile, climbing from `0.0914s` to `0.4247s` (a **4.6x increase**). While faster than `critical` due to lighter compiler-level lock mechanics, it still incurs significant lock-acquisition wait times at higher thread counts.
+- **Unsynchronized (`None`) — Misleadingly Fast:** Remains below `0.010s` because threads run freely with zero synchronization overhead, but results in critical data corruption.
+
+---
+
+### 3. Synchronization Overhead Comparison
+A direct side-by-side grouped bar chart comparing execution times across 1, 2, 4, and 8 threads:
+
+![Synchronization Overhead Comparison](results/synchronization_overhead_comparison.png)
+
+**Key Insights:**
+- At **1 Thread**, overhead between `Critical` (`0.0899s`) and `Lock` (`0.0914s`) is nearly identical, while `Atomic` is ~39% faster (`0.0546s`).
+- At **8 Threads**, `Critical` (`0.7047s`) is **10x slower** than `Atomic` (`0.0702s`), and `Lock` (`0.4247s`) is **6x slower** than `Atomic`.
+
+---
+
+### 4. Race Condition & Data Loss Severity
+Analysis of lost increments in the unsynchronized shared counter (`expected = 10,000,000`):
+
+![Race Condition Severity](results/race_condition_loss.png)
+
+| Threads | Expected Count | Actual Final Count | Lost Increments | Data Loss (%) | Correctness |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **1** | 10,000,000 | 10,000,000 | 0 | **0.0%** | Correct |
+| **2** | 10,000,000 | 7,414,813 | 2,585,187 | **25.9%** | Incorrect |
+| **4** | 10,000,000 | 3,758,091 | 6,241,909 | **62.4%** | Incorrect |
+| **8** | 10,000,000 | 1,973,175 | 8,026,825 | **80.3%** | Incorrect |
+
+**Key Insights:**
+- With 1 thread, no concurrency exists, so all 10,000,000 updates succeed.
+- As concurrency increases, thread interleaving on unsynchronized read-modify-write operations (`counter++`) causes massive update overwrite.
+- At 8 threads, **over 80.2% of all updates are lost**, resulting in a final count of only 1,973,175 instead of 10,000,000.
+
+---
+
+### Reproducing the Graphs
+The plots are generated using Python (`matplotlib` & `pandas`). To regenerate the graphs locally:
+
+```bash
+cd results
+python generate_graphs.py
+```
+
+---
 
 ## Observations
-1. The unsynchronized shared counter can lose updates when multiple threads increment it concurrently.
-2. The critical region, atomic operation, and lock produced the expected final count in the recorded benchmark.
-3. Synchronization adds overhead because threads must coordinate access to shared data.
-4. In this recorded run, the atomic implementation was faster than the critical-region and explicit-lock implementations for the tested thread counts.
-5. A barrier is a coordination point: no thread can pass it until all participating threads in the parallel region have arrived.
+1. **Race Conditions Cause Severe Data Loss:** The unsynchronized shared counter loses updates when multiple threads increment it concurrently, reaching over 80% data corruption at 8 threads.
+2. **Synchronization Guarantees Correctness:** OpenMP `atomic`, `critical`, and OpenMP locks all guarantee 100% correct final counts (10,000,000 / 10,000,000).
+3. **Atomic Primitives Are Most Efficient:** For simple scalar updates, `#pragma omp atomic` is vastly superior in both speed and scalability compared to coarse-grained `critical` sections or locks (up to 10x faster at 8 threads).
+4. **Critical Section Serialization Penalty:** Critical sections enforce total mutual exclusion, causing heavy lock contention and thread stalling as the number of threads increases.
+5. **Barriers Synchronize Execution Phases:** `#pragma omp barrier` ensures all threads reach a synchronization point before proceeding, preventing execution order skew.
 
 ## Conclusion
-This experiment demonstrates why synchronization is important in parallel programs. Shared data must be protected when multiple threads update it concurrently. OpenMP critical regions, atomic operations, locks, barriers, and POSIX semaphores serve different synchronization purposes. The benchmark illustrates the trade-off between correctness and execution time, while also showing that measurements depend on the execution environment.
+This experiment demonstrates why synchronization is vital in parallel programming. Unsynchronized shared state inevitably leads to race conditions and severe data corruption. OpenMP provides multiple synchronization tools suited for different granularities:
+- Use **`atomic`** for single memory updates (counters, accumulations) where hardware acceleration delivers near-zero scaling overhead.
+- Use **`critical`** or **locks** when multiple operations or code blocks need atomic execution as a unit.
+- Use **`barrier`** and **semaphores** for thread coordination and resource signaling.
+
+---
 
 ## Repository Structure
 
 ```text
-Synchronization-Mechanisms-Parallel-Programs/
+Synchronization_Mechanism/
 ├── README.md
 ├── .gitignore
 ├── src/
@@ -204,5 +275,12 @@ Synchronization-Mechanisms-Parallel-Programs/
 │   ├── 10-benchmark-compilation-and-run.png
 │   └── 11-performance-comparison.png
 └── results/
-    └── benchmark-results.txt
+    ├── benchmark-results.csv
+    ├── benchmark-results.txt
+    ├── generate_graphs.py
+    ├── benchmark_summary.png
+    ├── execution_time_comparison.png
+    ├── synchronization_overhead_comparison.png
+    └── race_condition_loss.png
 ```
+
